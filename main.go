@@ -13,15 +13,15 @@ import(
 	fp "path/filepath"
 )
 
-var url = flag.String("url", "www.baidu.com", "起始网址")
-var downloadDir = flag.String("dir", "./Downloads", "自定义存放文件的路径")
-var sUrl = flag.String("furl", "" , "自定义过滤网页链接的关键字")
-var sPic = flag.String("fpic", "", "自定义过滤图片链接的关键字")
-var sParent = flag.String("fparent", "", "自定义过滤图片父页面链接须包含的关键字")
-var imgAttr = flag.String("img", "src", "自定义图片属性名称， 如data-original")
-var minSize = flag.Int("size", 150,"最小图片大小 单位kb")
-var maxSize = flag.Int("no", 20, "需要爬取的有效图片数量")
-var recursive = flag.Bool("re", true, "是否需要递归当前页面链接")
+var url = flag.String("url", "www.baidu.com", "Start websit")
+var downloadDir = flag.String("dir", "./Downloads", "Path to store download file")
+var sUrl = flag.String("furl", "" , "Keyword to filter webpage")
+var sPic = flag.String("fpic", "", "Keyword to filter picture")
+var sParent = flag.String("fparent", "", "Keyword to filter father webpage")
+var imgAttr = flag.String("img", "src", "Name of picture suffix, for example: data-original")
+var minSize = flag.Int("size", 150,"Minimum picture size(kb)")
+var maxSize = flag.Int("no", 20, "Number of crawler pictures")
+var recursive = flag.Bool("re", true, "Whetherr recuresize current webpage")
 
 var seen = History{m: map[string]bool{}}
 var count = new(Counts)
@@ -54,7 +54,7 @@ func main(){
 	go HandlePic()
 
 	<-done
-	log.Printf("图片统计：下载%v", count.Value("download"))
+	log.Printf("Download %v pictures", count.Value("download"))
 	log.Printf("END")
 }
 
@@ -68,7 +68,6 @@ func HandleHTML(){
 				continue
 			}
 
-			//goquery会主动关闭res.Body
 			doc, err := goquery.NewDocumentFromResponse(res)
 			if err != nil{
 				log.Println(fmt.Sprintf("error is %v",err))
@@ -85,9 +84,9 @@ func HandleHTML(){
 
 			parsePics(doc, u, picChan)
 			count.Inc("page")
-			log.Printf("当前爬取了 %v个网页 %s", count.Value("page"), u.Url)
+			log.Printf("Crawler %v webpages %s", count.Value("page"), u.Url)
 		default:
-			log.Println("待爬取队列为空，爬取完成")
+			log.Println("Crawler schedule is empty, completed")
 			done <- 1
 		}
 	}
@@ -153,9 +152,9 @@ func HandlePic(){
 				_, e = f.Write(data)
 				fatal(e)
 				count.Inc("download")
-				log.Printf("图片统计： 下载%v 当前图片大小: %v kb", count.Value("download"), len(data)/1000)
+				log.Printf("Crawler %v picture, current picture size: %v kb", count.Value("download"), len(data)/1000)
 			} else {
-				log.Printf("爬取%v 当前图片大小: %v kb", count.Value("pic"), len(data)/1000)
+				log.Printf("Crawler %v picture, current picture size: %v kb", count.Value("pic"), len(data)/1000)
 			}
 		}()
 
@@ -173,12 +172,12 @@ func parseLinks(doc *goquery.Document, parent *URL, urlChan, picChan chan *URL){
 			} else {
 				new := NewURL(url, parent, *downloadDir)
 				if seen.Has(new.Url){
-					log.Printf("链接已爬取， 忽略 %v", new.Url)
+					log.Printf("Url is crawlered， ignore %v", new.Url)
 				} else {
 					seen.Add(new.Url)
 					if !IsPic(new.Url) {
 						if !strings.Contains(new.Url, HOST) {
-							log.Printf("链接已超出本站， 忽略 %v", new.Url)
+							log.Printf("Url is beyond the limited， ignore %v", new.Url)
 						}
 					}
 				}
@@ -218,21 +217,21 @@ func parsePics(doc *goquery.Document, parent *URL, picChaen chan *URL) {
 			} else {
 				new := NewURL(url, parent, *downloadDir)
 				if seen.Has(new.Url) {
-					log.Printf("图片已爬取， 忽略 %v", new.Url)
+					log.Printf("Picture is crawlered, ignore %v", new.Url)
 				} else {
 					seen.Add(new.Url)
 					if !strings.Contains(parent.Path, *sParent) {
-						log.Printf("父页面不满足过滤关键词， 忽略 %v", new.Url)
+						log.Printf("Parent page is not satisfy the keyword, ignore %v", new.Url)
 						return
 					}
 
 					if !strings.Contains(new.Path, *sPic) {
-						log.Printf("不包含图片过滤关键词， 忽略 %v", new.Url)
+						log.Printf("Picture is not satisfy the keyword, ignore %v", new.Url)
 						return
 					}
 
 					if exists(new.FilePath) {
-						log.Printf("图片已存在， 忽略 %v", new.Url)
+						log.Printf("Picture is exist, ignore %v", new.Url)
 						return
 					}
 
